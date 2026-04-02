@@ -1,8 +1,16 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="vcenter">
-    <h1>Pygmy</h1>
+<div style="margin-bottom: 24px;">
+    <div class="vcenter" style="flex-direction: column; gap: 8px;">
+        <div class="text-[11px] font-bold uppercase tracking-widest" style="color: rgba(4,190,153,0.95); letter-spacing: .14em;">
+            Deep Tech OS
+        </div>
+        <h1 style="margin: 0; font-weight: 900; letter-spacing: -0.04em; color: #fff;">Pygmy</h1>
+        <p style="margin: 0; max-width: 720px; text-align: center; color: rgba(197,198,205,0.85);">
+            High-signal URL shortening with operational visibility. Built for fast workflows and dark-surface readability.
+        </p>
+    </div>
 </div>
 <div>
     <form id="urlshortenform" action="/shorten" method="post">
