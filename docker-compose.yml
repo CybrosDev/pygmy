@@ -1,52 +1,36 @@
-version: '3'
-
 services:
 
-  database:
-    image: postgres:11
-    restart: always
-    # ports:
-    #   - "5433:5432"
-    volumes:
-       - pgdata:/var/lib/postgresql/data
-    environment:
-      POSTGRES_PASSWORD: root
-      POSTGRES_USER: root
-      POSTGRES_DB: pygmy
-
   pygmy:
-    image: amit19/pygmy
-    restart: always
-    build: .
-    # ports:
-    #  - "9119:9119"
-    links:
-      - database
-    environment:
-      - DB_PASSWORD=root
-      - DB_USER=root
-      - DB_NAME=pygmy
-      - DB_HOST=database
-      - DB_PORT=5432
+    image: ${PYGMY_IMAGE:-pygmy:local}
+    restart: unless-stopped
+    build:
+      context: /Users/cybros/Downloads/Copy/URL/pygmy
+      dockerfile: Dockerfile
+    env_file:
+      - /Users/cybros/Downloads/Copy/URL/pygmy/.env
+    ports:
+      - "${PYGMY_API_PORT:-9119}:9119"
     volumes:
-     - .:/pygmy
+      - .:/pygmy
     command: gunicorn --log-file /var/log/pygmy/error_logs.log --access-logfile /var/log/pygmy/acclogs.log --log-level DEBUG --bind 0.0.0.0:9119 --workers 2 pygmy.rest.wsgi:app
-    depends_on:
-      - database
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import socket; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1', 9119)); s.close()\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
 
   pygmyui:
-    image: amit19/pygmy
-    restart: always
-    build: .
+    image: ${PYGMY_IMAGE:-pygmy:local}
+    restart: unless-stopped
+    build:
+      context: /Users/cybros/Downloads/Copy/URL/pygmy
+      dockerfile: Dockerfile
+    env_file:
+      - /Users/cybros/Downloads/Copy/URL/pygmy/.env
     ports:
-     - "8000:8000"
-    links:
-      - pygmy
-    environment:
-      - PYGMY_API_ADDRESS=pygmy
+      - "${PYGMY_UI_PORT:-8000}:8000"
     command: sh -c "cd pygmyui && gunicorn --log-file /var/log/pygmy/uierror_logs.log --access-logfile /var/log/pygmy/uiacclogs.log --bind 0.0.0.0:8000 --workers 2 pygmyui.wsgi && cd .."
     depends_on:
-      - pygmy
-
-volumes:
-  pgdata:
+      pygmy:
+        condition: service_healthy
