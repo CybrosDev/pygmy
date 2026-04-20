@@ -1,15 +1,19 @@
 services:
 
   pygmy:
-    image: ${PYGMY_IMAGE:-pygmy:local}
+    image: pygmy
     restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
     env_file:
       - .env
+    environment:
+      - PYTHON_ENV=production
+      - FLASK_ENV=production
+      - DEBUG=False
     ports:
-      - "${PYGMY_API_PORT:-9119}:9119"
+      - 1500:9119
     volumes:
       - .:/pygmy
     command: gunicorn --log-file /var/log/pygmy/error_logs.log --access-logfile /var/log/pygmy/acclogs.log --log-level DEBUG --bind 0.0.0.0:9119 --workers 2 pygmy.rest.wsgi:app
@@ -21,15 +25,19 @@ services:
       start_period: 15s
 
   pygmyui:
-    image: ${PYGMY_IMAGE:-pygmy:local}
+    image: pygmy
     restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
     env_file:
       - .env
+    environment:
+      - PYTHON_ENV=production
+      - FLASK_ENV=production
+      - DEBUG=False
     ports:
-      - "${PYGMY_UI_PORT:-8000}:8000"
+      - 1501:9119
     command: sh -c "cd pygmyui && gunicorn --log-file /var/log/pygmy/uierror_logs.log --access-logfile /var/log/pygmy/uiacclogs.log --bind 0.0.0.0:8000 --workers 2 pygmyui.wsgi && cd .."
     depends_on:
       pygmy:

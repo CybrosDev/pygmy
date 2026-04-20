@@ -1,0 +1,104 @@
+name: Deploy (master)
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to deploy"
+        required: true
+        default: master
+
+concurrency:
+  group: deploy-${{ github.event.inputs.branch || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+  DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+  DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+  DEPLOY_BRANCH: ${{ github.event.inputs.branch || github.ref_name }}
+  DEPLOY_COMPOSE_FILE: ${{ vars.DEPLOY_COMPOSE_FILE || 'docker-compose.yml' }}
+  PROJECT_NAME: ${{ vars.PROJECT_NAME || 'pygmy' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Validate deployment configuration
+        run: |
+          set -euo pipefail
+          missing=0
+          for key in DEPLOY_HOST DEPLOY_USER DEPLOY_PATH; do
+            if [ -z "${!key:-}" ]; then
+              echo "::error::Missing required repository variable: ${key}"
+              missing=1
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Add SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+
+      - name: Trust host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${DEPLOY_HOST}" >> ~/.ssh/known_hosts
+
+      - name: Notify Slack - Start deployment
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": ":rocket: *Starting Pygmy deployment* for branch `${{ env.DEPLOY_BRANCH }}` by `${{ github.actor }}`"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Deploy via SSH
+        run: |
+          set -euo pipefail
+          ssh "${DEPLOY_USER}@${DEPLOY_HOST}" "
+            set -euo pipefail
+            cd \"${DEPLOY_PATH}\"
+            git fetch origin
+            git checkout \"${DEPLOY_BRANCH}\"
+            git reset --hard \"origin/${DEPLOY_BRANCH}\"
+            chmod +x deploy.sh
+            PROJECT_NAME=\"${PROJECT_NAME}\" COMPOSE_FILE=\"${DEPLOY_COMPOSE_FILE}\" ./deploy.sh deploy
+            docker image prune -f || true
+          "
+
+      - name: Notify Slack - Deployment succeeded
+        if: ${{ success() && secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": ":white_check_mark: *Pygmy deployment successful!* :tada:\nRepository: `${{ github.repository }}`\nBranch: `${{ env.DEPLOY_BRANCH }}`\nTriggered by: `${{ github.actor }}`\nRun: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify Slack - Deployment failed
+        if: ${{ failure() && secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": ":x: *Pygmy deployment failed!* :warning:\nPlease review the workflow logs.\nRepository: `${{ github.repository }}`\nBranch: `${{ env.DEPLOY_BRANCH }}`\nTriggered by: `${{ github.actor }}`\nRun: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
