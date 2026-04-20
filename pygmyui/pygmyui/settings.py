@@ -24,7 +24,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'fd(9^fy^sa$$g&a)lknmol!m6@w52h=46r(%-=%elcim9ycc1f'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
 ALLOWED_HOSTS = []
 
@@ -144,6 +144,15 @@ STATICFILES_DIRS = [
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 ALLOWED_HOSTS = ['*']
+
+# HTTPS / CSRF (Django 4+): required when POSTing from a real browser origin
+# e.g. https://snipzy.cybroscloud.com — set CSRF_TRUSTED_ORIGINS in env as comma-separated list.
+_default_csrf_origins = 'https://snipzy.cybroscloud.com,http://127.0.0.1:8000,http://localhost:8000'
+CSRF_TRUSTED_ORIGINS = [
+    o.strip().rstrip('/')
+    for o in os.environ.get('CSRF_TRUSTED_ORIGINS', _default_csrf_origins).split(',')
+    if o.strip()
+]
 
 # Pygmy Settings
 PYGMY_API_ADDRESS = 'http://127.0.0.1:9119'
