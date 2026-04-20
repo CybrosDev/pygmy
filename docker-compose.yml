@@ -15,7 +15,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - 1500:9119
+      - 1500:8000
     volumes:
       - .:/pygmy
     command: gunicorn --log-file /var/log/pygmy/error_logs.log --access-logfile /var/log/pygmy/acclogs.log --log-level DEBUG --bind 0.0.0.0:9119 --workers 2 pygmy.rest.wsgi:app
@@ -41,7 +41,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - 1501:9119
+      - 1501:8000
     command: sh -c "cd pygmyui && gunicorn --log-file /var/log/pygmy/uierror_logs.log --access-logfile /var/log/pygmy/uiacclogs.log --bind 0.0.0.0:8000 --workers 2 pygmyui.wsgi && cd .."
     depends_on:
       pygmy:
