@@ -7,7 +7,7 @@ services:
       context: /Users/cybros/Downloads/Copy/URL/pygmy
       dockerfile: Dockerfile
     env_file:
-      - /Users/cybros/Downloads/Copy/URL/pygmy/.env
+      - .env
     ports:
       - "${PYGMY_API_PORT:-9119}:9119"
     volumes:
@@ -27,7 +27,7 @@ services:
       context: /Users/cybros/Downloads/Copy/URL/pygmy
       dockerfile: Dockerfile
     env_file:
-      - /Users/cybros/Downloads/Copy/URL/pygmy/.env
+      - .env
     ports:
       - "${PYGMY_UI_PORT:-8000}:8000"
     command: sh -c "cd pygmyui && gunicorn --log-file /var/log/pygmy/uierror_logs.log --access-logfile /var/log/pygmy/uiacclogs.log --bind 0.0.0.0:8000 --workers 2 pygmyui.wsgi && cd .."
