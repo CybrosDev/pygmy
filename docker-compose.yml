@@ -12,6 +12,8 @@ services:
       - PYTHON_ENV=production
       - FLASK_ENV=production
       - DEBUG=False
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - 1500:9119
     volumes:
@@ -25,7 +27,7 @@ services:
       start_period: 15s
 
   pygmyui:
-    image: pygmy
+    image: pygmyui
     restart: unless-stopped
     build:
       context: .
@@ -36,6 +38,8 @@ services:
       - PYTHON_ENV=production
       - FLASK_ENV=production
       - DEBUG=False
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - 1501:9119
     command: sh -c "cd pygmyui && gunicorn --log-file /var/log/pygmy/uierror_logs.log --access-logfile /var/log/pygmy/uiacclogs.log --bind 0.0.0.0:8000 --workers 2 pygmyui.wsgi && cd .."
