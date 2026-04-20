@@ -25,7 +25,11 @@ urlpatterns = [
     url(r'^contact', views.contact),
     url(r'', include('user_auth.urls')),
     url(r'', include('pygmy.urls')),
-    url(r'^static/(?P<path>.*)$', serve,{'document_root': settings.STATIC_ROOT}),
+    url(
+        r'^static/(?P<path>.*)$',
+        serve,
+        {'document_root': settings.STATICFILES_DIRS[0]},
+    ),
 ]
 
 if settings.DEBUG is True:
